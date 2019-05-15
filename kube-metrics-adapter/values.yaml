@@ -7,7 +7,7 @@ logLevel: 9
 
 # Url to access prometheus
 prometheus:
-  url: http://prometheus.cattle-prometheus
+  url: http://prometheus-operator.cattle-prometheus
 
 replicas: 1
 
