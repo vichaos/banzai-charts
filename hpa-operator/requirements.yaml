@@ -5,4 +5,4 @@ dependencies:
   condition: metricsServer.enabled
 - name: kube-metrics-adapter
   version: 0.0.2
-  repository: https://kubernetes-charts.banzaicloud.com
+  repository: https://github.com/vichaos/banzai-charts.git
