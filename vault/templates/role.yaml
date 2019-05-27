@@ -1,5 +1,6 @@
+{{- if .Values.rbac.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: {{ template "vault.fullname" . }}-secret-access
   labels:
@@ -11,3 +12,10 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["*"]
+{{- if .Values.rbac.psp.enabled }}
+- apiGroups: ["extensions"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: [{{ template "vault.fullname" . }}]
+{{- end }}
+{{- end }}

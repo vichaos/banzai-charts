@@ -5,7 +5,7 @@
 ## tl;dr:
 
 ```bash
-$ helm repo add banzaicloud-stable http://kubernetes-charts.banzaicloud.com/branch/master
+$ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com
 $ helm repo update
 $ helm install banzaicloud-stable/logging-operator
 ```
@@ -45,11 +45,43 @@ The following tables lists the configurable parameters of the logging-operator c
 |                      Parameter                      |                        Description                     |             Default            |
 | --------------------------------------------------- | ------------------------------------------------------ | ------------------------------ |
 | `image.repository`                                  | Container image repository                             | `banzaicloud/logging-operator` |
-| `image.tag`                                         | Container image tag                                    | `0.1.2`                        |
+| `image.tag`                                         | Container image tag                                    | `0.1.7`                        |
 | `image.pullPolicy`                                  | Container pull policy                                  | `IfNotPresent`                 |
 | `nameOverride`                                      | Override name of app                                   | ``                             |
 | `fullnameOverride`                                  | Override full name of app                              | ``                             |
 | `watchNamespace`                                    | Namespace to watch fot LoggingOperator CRD             | ``                             |
+| `grafana.dashboard.enabled`                         | Install grafana logging-operator dashboard             | `true`                         |
+| `rbac.enabled`                                      | Create rbac service account and roles                  | `true`                         |
+| `rbac.psp.enabled`                                  | Must be used with `rbac.enabled` true. If true, creates & uses RBAC resources required in the cluster with [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) enabled.              | `false`                        |
+| `affinity`                                          | Node Affinity                                          | `{}`                           |
+| `resources`                                         | CPU/Memory resource requests/limits                    | `{}`                           |
+| `tolerations`                                       | Node Tolerations                                       | `[]`                           |
+| `nodeSelector`                                      | Define which Nodes the Pods are scheduled on.          | `{}`                           |
+| `podSecurityContext`                                | Pod SecurityContext for Logging operator. [More info](https://kubernetes.io/docs/concepts/policy/security-context/)                                                                                             | `{"runAsNonRoot": true, "runAsUser": 1000, "fsGroup": 2000}` |
+| `securityContext`                                   | Container SecurityContext for Logging operator. [More info](https://kubernetes.io/docs/concepts/policy/security-context/)                                                                                             | `{"allowPrivilegeEscalation": false, "readOnlyRootFilesystem": true}` |
+
+Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example:
+
+```bash
+$ helm install --name my-release -f values.yaml banzaicloud-stable/logging-operator
+```
+
+> **Tip**: You can use the default [values.yaml](values.yaml)
+
+## Installing Fluentd and Fluent-bit
+
+The previous chart does **not** install Fluentd or Fluent-bit custom resource. To install them please use the [Logging Operator Fluent](https://github.com/banzaicloud/banzai-charts/logging-operator-fluent) chart.
+
+## tl;dr:
+
+```bash
+$ helm repo add banzaicloud-stable https://kubernetes-charts.banzaicloud.com
+$ helm repo update
+$ helm install banzaicloud-stable/logging-operator-fluent
+```
+
+|                      Parameter                      |                        Description                     |             Default            |
+| --------------------------------------------------- | ------------------------------------------------------ | ------------------------------ |
 | `tls.enabled`                                       | Enabled TLS communication between components           | true                           |
 | `tls.secretName`                                    | Specified secret name, which contain tls certs         | This will overwrite automatic Helm certificate generation. |
 | `tls.sharedKey`                                     | Shared key between nodes (fluentd-fluentbit)           | [autogenerated]                |
@@ -71,19 +103,3 @@ The following tables lists the configurable parameters of the logging-operator c
 | `fluentd.configReloaderImage.pullPolicy`            | Fluentd configReloaderImage container pull policy      | `IfNotPresent`                 |
 | `fluentd.fluentdPvcSpec.accessModes`                | Fluentd persistence volume access modes                | `[ReadWriteOnce]`              |
 | `fluentd.fluentdPvcSpec.resources.requests.storage` | Fluentd persistence volume size                        | `21Gi`                         |
-| `grafana.dashboard.enabled`                         | Install grafana logging-operator dashboard             | `true`                         |
-| `rbac.create`                                       | Create rbac service account and roles                  | `true`                         |
-| `affinity`                                          | Node Affinity                                          | `{}`                           |
-| `resources`                                         | CPU/Memory resource requests/limits                    | `{}`                           |
-| `tolerations`                                       | Node Tolerations                                       | `[]`                           |
-| `nodeSelector`                                      | Define which Nodes the Pods are scheduled on.          | `{}`                           |
-| `securityContext`                                   | SecurityContext for Logging operator                   | `{"runAsNonRoot": true, "runAsUser": 1000}` |
-
-Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example:
-
-```bash
-$ helm install --name my-release -f values.yaml banzaicloud-stable/logging-operator
-```
-
-> **Tip**: You can use the default [values.yaml](values.yaml)
-

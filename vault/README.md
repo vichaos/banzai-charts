@@ -60,6 +60,58 @@ kubectl create secret generic aws --from-literal=AWS_ACCESS_KEY_ID=$AWS_ACCESS_K
 helm install banzaicloud-stable/vault --set "vault.customSecrets[0].secretName=aws" --set "vault.customSecrets[0].mountPath=/vault/aws"
 ```
 
+## Google Storage and KMS example
+
+You can set up Vault to use Google KMS for sealing and Google Storage for storing your encrypted secrets. See the usage example below: 
+
+```
+# Create a google secret with your Secret Account Key file in json fromat.
+kubectl create secret generic google --from-literal=GOOGLE_APPLICATION_CREDENTIALS=/etc/gcp/service-account.json --from-file=service-account.json=./service-account.json
+
+# Tell the chart to pass these vars to Vault and as a file mount if needed
+helm install banzaicloud-stable/vault \
+--set "vault.customSecrets[0].secretName=google" \
+--set "vault.customSecrets[0].mountPath=/etc/gcp" \
+--set "vault.config.storage.gcs.bucket=[google-bucket-name]" \
+--set "vault.config.seal.gcpckms.project=[google-project-id]" \
+--set "vault.config.seal.gcpckms.region=[google-kms-region]" \
+--set "vault.config.seal.gcpckms.key_ring=[google-kms-key-ring]" \
+--set "vault.config.seal.gcpckms.crypto_key=[google-kms-crypto-key]" \
+--set "unsealer.args[0]=--mode" \
+--set "unsealer.args[1]=google-cloud-kms-gcs" \
+--set "unsealer.args[2]=--google-cloud-kms-key-ring" \
+--set "unsealer.args[3]=[google-kms-key-ring]" \
+--set "unsealer.args[4]=--google-cloud-kms-crypto-key" \
+--set "unsealer.args[5]=[google-kms-crypto-key]" \
+--set "unsealer.args[6]=--google-cloud-kms-location" \
+--set "unsealer.args[7]=global" \
+--set "unsealer.args[8]=--google-cloud-kms-project" \
+--set "unsealer.args[9]=[google-project-id]" \
+--set "unsealer.args[10]=--google-cloud-storage-bucket" \
+--set "unsealer.args[11]=[google-bucket-name]"
+```
+
+## Vault HA with MySQL backend
+
+You can set up a HA Vault to use MySQL for storing your encrypted secrets. MySQL supports the HA coordination of Vault, see the [official docs](https://www.vaultproject.io/docs/configuration/storage/mysql.html) for more details.
+
+See the complete working Helm example below:
+
+```bash
+# Install MySQL first with the official Helm chart, tell to create a user and a database called 'vault':
+helm install --name mysql stable/mysql --set mysqlUser=vault --set mysqlDatabase=vault
+
+# Install the Vault chart, tell it to use MySQL as the storage backend, also specify where the 'vault' user's password should be coming from (the MySQL chart generates a secret called 'mysql' holding the password):
+helm install --name vault banzaicloud-stable/vault \
+--set replicaCount=2 \
+--set vault.config.storage.mysql.address=mysql:3306 \
+--set vault.config.storage.mysql.username=vault \
+--set vault.config.storage.mysql.password="[[.Env.MYSQL_PASSWORD]]" \
+--set "vault.envSecrets[0].secretName=mysql" \
+--set "vault.envSecrets[0].secretKey=mysql-password" \
+--set "vault.envSecrets[0].envName=MYSQL_PASSWORD"
+```
+
 ## Configuration
 
 The following tables lists the configurable parameters of the vault chart and their default values.
@@ -70,12 +122,15 @@ The following tables lists the configurable parameters of the vault chart and th
 | `image.repository`      | Container image to use              | `vault`                                             |
 | `image.tag`             | Container image tag to deploy       | `1.0.3`                                             |
 | `vault.customSecrets`   | Custom secrets available to Vault   | `[]`                                                |
+| `vault.envSecrets`      | Custom secrets available to Vault as env vars | `[]`                                    |
 | `vault.config`          | Vault configuration                 | No default backend                                  |
 | `vault.externalConfig`  | Vault API based configuration       | No default backend                                  |
 | `replicaCount`          | k8s replicas                        | `1`                                                 |
 | `resources.limits.cpu`  | Container requested CPU             | `nil`                                               |
 | `resources.limits.memory` | Container requested memory        | `nil`                                               |
-| `unsealer.args` | Bank Vaults args | `["--mode", "k8s", "--k8s-secret-namespace", "default", "--k8s-secret-name", "bank-vaults"]` |
+| `unsealer.args`         | Bank Vaults args | `["--mode", "k8s", "--k8s-secret-namespace", "default", "--k8s-secret-name", "bank-vaults"]` |
+| `rabc.enabled`          | Use rbac                            | `true`                                              |
+| `rabc.psp.enabled`      | Use pod security policy             | `false`                                             |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
 

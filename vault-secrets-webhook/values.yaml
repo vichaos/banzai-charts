@@ -8,7 +8,7 @@ debug: false
 
 image:
   repository: banzaicloud/vault-secrets-webhook
-  tag: 0.4.12
+  tag: 0.4.15
   pullPolicy: IfNotPresent
 
 service:
@@ -25,6 +25,13 @@ resources: {}
 
 nodeSelector: {}
 
+namespaceSelector: {}
+
 tolerations: []
 
 affinity: {}
+
+rbac:
+  enabled: true
+  psp:
+    enabled: false

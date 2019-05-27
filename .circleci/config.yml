@@ -1,97 +1,30 @@
-# Golang CircleCI 2.0 configuration file
-version: 2.0
+version: 2.1
 
-jobs:
-  build:
-    docker:
-      - image: banzaicloud/helm:0.0.3
+orbs:
+  helm: banzaicloud/helm@0.0.4
 
-    steps:
-      - checkout
-      - run:
-          name: Helm lint
-          command: |
-            pwd
-            find -H . \
-                -maxdepth 1 \
-                -type d \
-                ! -path . \
-                ! -path ./.gitignore \
-                ! -path ./.git \
-                ! -path ./.circleci \
-                -exec helm lint {} +
-
-  build-and-publish-single-chart:
-    docker:
-      - image: banzaicloud/helm:0.0.3
-
-    working_directory: /workspace/banzai-charts
-
-    steps:
-      - checkout
-
-      - run:
-          name: Setup helm repositories
-          command: |
-            helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
-            helm repo add banzaicloud-stable http://kubernetes-charts.banzaicloud.com/branch/master
-            helm repo add chartmuseum https://kubernetes-charts.banzaicloud.com
-            helm repo update
-            helm repo list
-
-      - run:
-          name: Check versions
-          command: |
-            chart_name="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $1}')"
-            chart_version="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $2}')"
-
-            if [ ! -d "/workspace/banzai-charts/${chart_name}" ]; then
-                echo "Chart does not exist; name='${chart_name}'"
-                exit 1
-            fi
-
-            if ! grep -q -F "version: $chart_version" "/workspace/banzai-charts/${chart_name}/Chart.yaml"; then
-                echo "Chart version mismatch; name='${chart_name}', version='${chart_version}'"
-                exit 1
-            fi
-
-            if ! helm search -r "chartmuseum\/${chart_name}[^-]" -v "${chart_version}" | grep -q 'No results found'; then
-                echo "Chart already exists in chartmuseum; name='${chart_name}', version='${chart_version}'"
-                exit 1
-            fi
-
-      - run:
-          name: Build chart
-          command: |
-            chart_name="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $1}')"
-            chart_version="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $2}')"
-
-            mkdir -p "/workspace/tgz"
-
-            helm package \
-                --dependency-update \
-                --destination '/workspace/tgz/' \
-                "${chart_name}"
-
-      - run:
-          name: Publish charts to chartmuseum
-          command: |
-            chart_name="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $1}')"
-            chart_version="$(echo "${CIRCLE_TAG}" | awk -F '/' '{print $2}')"
-
-            helm push "/workspace/tgz/${chart_name}-${chart_version}.tgz" chartmuseum
+helm-repositories: &helm_repositories
+  - run: helm repo add banzaicloud-stable http://kubernetes-charts.banzaicloud.com/branch/master
+  - run: helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com
+  - run: helm repo add rimusz https://charts.rimusz.net
 
 workflows:
   version: 2
   static-checks:
     jobs:
-      - build:
+      - helm/lint-chart:
+          context: helm
+          charts-dir: '.'
+          add-extra-repositories: *helm_repositories
           filters:
             tags:
-              only: /.*/
-  build-and-publish-single-chart-to-chartmuseum:
+              ignore: /.*/
+  release:
     jobs:
-      - build-and-publish-single-chart:
+      - helm/publish-chart:
+          context: helm
+          charts-dir: '.'
+          add-extra-repositories: *helm_repositories
           filters:
             tags:
               only: /\S+\/\d+.\d+.\d+/

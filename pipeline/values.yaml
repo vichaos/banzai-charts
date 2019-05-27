@@ -7,7 +7,7 @@ replicaCount: 1
 strategy: {}
 image:
   repository: banzaicloud/pipeline
-  tag: 0.13.0
+  tag: 0.18.2
   pullPolicy: IfNotPresent
 
 resources:
@@ -22,7 +22,7 @@ worker:
   strategy: {}
   image:
     repository: banzaicloud/pipeline
-    tag: 0.13.0
+    tag: 0.18.2
     pullPolicy: IfNotPresent
 
   resources:
@@ -67,13 +67,6 @@ env: {}
 deploymentLabels: {}
 deploymentAnnotations: {}
 
-# Database configuration
-database:
-  # Vault role
-  role: ""
-  dbname: pipeline
-  logging: "true"
-
 ## Pipeline metrics, rules and alerting configuration
 metrics:
   serviceMonitor:
@@ -101,7 +94,10 @@ configuration:
 
   anchore:
     enabled: false
+    username: admin
     serviceEndpoint: ""
+    secretName: ""
+    secretKey: adminPassword
 
   logging:
     logformat: text
@@ -121,13 +117,13 @@ configuration:
 
   # CICD
   cicd:
-    url: http://localhost:8000
+    url: http://cicd:8000
   # Github
   github:
     token: ""
   # Authentication
   auth:
-    dexurl: http://dex/dex
+    dexurl: http://dex:5556/dex
     clientid: ""
     clientsecret: ""
     jwtissueer: https://banzaicloud.com/
@@ -145,12 +141,12 @@ configuration:
   helm:
    retryAttemp: 30
    retrySleepSeconds: 15
-   tillerVersion: "v2.12.2"
+   tillerVersion: "v2.13.1"
    path: "/cache/helm"
 
    #helm repo URLs
    stableRepositoryURL: "https://kubernetes-charts.storage.googleapis.com"
-   banzaiRepositoryURL: "http://kubernetes-charts.banzaicloud.com/branch/master"
+   banzaiRepositoryURL: "https://kubernetes-charts.banzaicloud.com"
 
   # Pipeline federated monitoring configurations
   monitor:
@@ -273,7 +269,7 @@ configuration:
       cert: ""
 
   cadence:
-    host: ""
+    host: "cadence"
     port: 7933
     domain: pipeline
 
@@ -282,43 +278,10 @@ configuration:
 ##
 vault:
   # Vault service endpoint
-  serviceAddress: ""
+  serviceAddress: "https://vault:8200"
   # The secret that holds the Vault CA cert.
   # If left empty SKIP_VERIFY will be used.
   tlsSecret: ""
-
-##
-## Anchore configuration
-##
-anchore:
-  enabled: false
-  serviceEndpoint: ""
-  username: admin
-  secretName: ""
-  secretKey: adminPassword
-
-##
-## Enable Cache persistence store
-##
-cache:
-  persistence:
-    enabled: true
-
-    ## A manually managed Persistent Volume and Claim
-    ## Requires persistence.enabled: true
-    ## If defined, PVC must be created manually before volume will be bound
-    # existingClaim:
-
-    ## Pipeline StateStore data Persistent Volume Storage Class
-    ## If defined, storageClassName: <storageClass>
-    ## If set to "-", storageClassName: "", which disables dynamic provisioning
-    ## If undefined (the default) or set to null, no storageClassName spec is
-    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    ##   GKE, AWS & OpenStack)
-    ##
-    # storageClass: "-"
-    accessMode: ReadWriteOnce
-    size: 1Gi
 
 statestore:
   persistence:
@@ -340,42 +303,45 @@ statestore:
     accessMode: ReadWriteOnce
     size: 128Mi
 
-## This is the MySQL connector related configuration
-## If enabled MySQL dependent chart will be installed else you need to prepare
-## MySQL by hand or use CloudSQL
 ##
-## mysql image version
-## ref: https://hub.docker.com/r/library/mysql/tags/
+## MySQL configuration
+## Read more: https://github.com/helm/charts/tree/master/stable/mysql
 ##
 mysql:
-  enabled: true
-  nameOverride: pipeline-db
-  mysqlDatabase: pipeline
-  mysqlUser: bonanzabanzai
-  ## Default: random 10 character string
-  # mysqlPassword:
-  initializationFiles:
-    cicd-db.sql: |-
-      CREATE DATABASE IF NOT EXISTS drone;
-      GRANT ALL PRIVILEGES ON drone.* TO 'bonanzabanzai'@'%';
-      FLUSH PRIVILEGES;
+  enabled: false
 
-  ## Enable persistence using Persistent Volume Claims
-  ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
-  ##
-  persistence:
-    enabled: false
+## Postgres configuration
+## Read more: https://github.com/helm/charts/tree/master/stable/postgresql
+##
+postgres:
+  enabled: true
+  service: {}
 
 ##
 ## CloudSQL configuration
-##
+## Read more: https://github.com/rimusz/charts/tree/master/stable/gcloud-sqlproxy
+## 
 cloudsql:
   enabled: false
-  instance: ""
-  dbName: ""
-  dbUserName: ""
-  dbUserPass: ""
-  image:
-    repository: gcr.io/cloudsql-docker/gce-proxy
-    tag: 1.11
-    pullPolicy: IfNotPresent
+  cloudsql:
+    instances: []
+    # instances:
+    #   - project:
+    #     region:
+    #     instance:
+    #     port:
+
+# Database configuration
+database:
+  # mysql, postgres
+  driver: ""
+  host: ""
+  port: ""
+  tls: ""
+  name: "pipeline"
+  username: "pipeline-rw"
+  password: ""
+  existingSecret: ""
+
+global:
+  postgresql: {}

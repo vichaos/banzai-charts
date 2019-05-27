@@ -6,7 +6,7 @@ strategy:
   type: RollingUpdate
 image:
   repository: vault
-  tag: 1.1.0
+  tag: 1.1.2
   pullPolicy: IfNotPresent
 service:
   name: vault
@@ -68,6 +68,19 @@ vault:
   customSecrets: []
     # - secretName: vault-tls
     #   mountPath: /vault/tls
+  # Allows creating various custom environment variables from secrets to enable
+  # production vault configurations. The comments show an example usage for
+  # passing a MySQL secret. The three fields required are a secretName indicating
+  # the name of the Kuberentes secret (created outside of this chart), secretKey
+  # in this secret and envName which will be the name of the env var in the containers.
+  secretEnvs: []
+    # - secretName: mysql
+    #   secretKey: mysql-username
+    #   envName: "MYSQL_USERNAME"
+  # Allows adding various custom eenvironment variables directly.
+  envs: []
+    # - name: GOOGLE_APPLICATION_CREDENTIALS
+    #   value: /etc/gcp/service-account.json
   externalConfig:
     # Allows creating policies in Vault which can be used later on in roles
     # for the Kubernetes based authentication.
@@ -148,7 +161,7 @@ vault:
 unsealer:
   image:
     repository: banzaicloud/bank-vaults
-    tag: 0.4.13
+    tag: 0.4.15
     pullPolicy: IfNotPresent
   args: [
       "--mode",
@@ -186,3 +199,8 @@ statsd:
       labels:
         method: "$1"
         path: "$2"
+
+rbac:
+  enabled: true
+  psp:
+    enabled: false

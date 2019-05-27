@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: banzaicloud/vault-operator
-  tag: 0.4.14
+  tag: 0.4.15
   pullPolicy: IfNotPresent
 
 service:
@@ -23,6 +23,17 @@ crdAnnotations: {}
 # all namespaces are watched
 watchNamespace: ""
 syncPeriod: "1m"
+
+# # If needed, define nodeSelector for vault operator
+# nodeSelector:
+#   "node-role.kubernetes.io/custom_worker": "true"
+
+# # if tolerations are used inside cluster, define tolerations as well
+# tolerations:
+#   - effect: NoSchedule
+#     key: node_role
+#     operator: Equal
+#     value: custom_worker
 
 resources:
   limits:

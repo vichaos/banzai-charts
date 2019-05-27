@@ -9,7 +9,7 @@ metadata:
     release: {{ .Release.Name }}
 data:
   config.yaml: |-
-    issuer: {{ default "http://127.0.0.1:5556/dex" .Values.config.issuer }}
+    issuer: {{ .Values.config.issuer }}
     storage:
       {{- if or .Values.postgresql.enabled .Values.cloudsql.enabled }}
       type: postgres
@@ -22,11 +22,13 @@ data:
         database: {{ .Values.postgresql.postgresqlDatabase }}
         user: {{ .Values.postgresql.postgresqlUsername }}
         password: {{ .Values.postgresql.postgresqlPassword }}
-        {{- else }}
+        {{- else if .Values.cloudsql.enabled }}
         host: {{ default "localhost:5432" .Values.config.storage.config.host }}
         database: {{ .Values.config.storage.config.database }}
         user: {{ .Values.config.storage.config.user }}
         password: {{ .Values.config.storage.config.password }}
+        {{- else }}
+{{ toYaml .Values.config.storage.config | indent 8 }}
         {{- end }}
         ssl:
           mode: {{ default "disable" .Values.config.storage.config.ssl.mode }}
@@ -36,6 +38,8 @@ data:
       http: {{ default "0.0.0.0:5556" .Values.config.web.http }}
     grpc:
       addr: {{ default "0.0.0.0:5557" .Values.config.grpc.addr }}
+    telemetry:
+      http: {{ default "0.0.0.0:5558" .Values.config.telemetry.http }}
     frontend:
       theme: {{ default "coreos" .Values.config.frontend.theme }}
 
@@ -49,7 +53,7 @@ data:
       type: {{ $value.type }}
       name: {{ $value.name }}
       config:
-{{ toYaml $value.config | indent 8 }}
+        {{ toYaml $value.config | nindent 8 }}
 {{- end }}
     enablePasswordDB: {{ .Values.config.enablePasswordDB }}
 {{- with .Values.config.staticPasswords }}
